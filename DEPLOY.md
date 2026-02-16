@@ -37,7 +37,19 @@ No manual table creation needed: the API creates `observers`, `history`, and `la
    - `VNSTOCK_API_KEY` – optional (from vnstocks.com/login)
 7. Deploy. Your API URL will be like `https://vietnam-stock-api.onrender.com`.
 
-**Free tier note:** The service may sleep after inactivity. The in-process checker (every 30 sec) only runs while the service is awake. To run checks when the app is sleeping, use an external cron (e.g. [cron-job.org](https://cron-job.org)) to call **GET** (or POST) **`https://your-api.onrender.com/api/check`** every 30 seconds (or every minute).
+**Free tier note:** The service may sleep after inactivity. The in-process checker (every 30 sec) only runs while the service is awake. Use **GitHub Actions** (below) or another external cron to call `/api/check` regularly.
+
+### 2.1 GitHub Actions cron (recommended)
+
+A workflow in `.github/workflows/ping-api.yml` calls your API every 5 minutes so checks run even when the app is sleeping.
+
+1. **Push the workflow** to your GitHub repo (it’s already in the project).
+2. **Set the API URL** in the repo:
+   - GitHub repo → **Settings** → **Secrets and variables** → **Actions**
+   - Under **Variables** → **New repository variable**
+   - Name: `API_BASE_URL`
+   - Value: your API base URL with no trailing slash, e.g. `https://vietnam-stock-api.onrender.com` or `https://136leonard.pythonanywhere.com`
+3. The workflow runs every 5 minutes (UTC). You can also run it manually: **Actions** → **Ping API check** → **Run workflow**.
 
 ---
 
