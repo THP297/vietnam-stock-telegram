@@ -1,4 +1,4 @@
-"""Run every 5 minutes: compare prices to observers, send Telegram on match, update history."""
+"""Run every 30 seconds: compare prices to observers, send Telegram on match, update history."""
 import logging
 import threading
 import time
@@ -15,7 +15,7 @@ from telegram_send import send_telegram
 
 logger = logging.getLogger(__name__)
 
-CHECK_INTERVAL_SEC = 5 * 60  # 5 minutes
+CHECK_INTERVAL_SEC = 30  # 30 seconds
 
 
 def run_check() -> None:
@@ -60,7 +60,7 @@ def run_check() -> None:
 
 
 def start_background_checker() -> None:
-    """Start a daemon thread that runs run_check every 5 minutes."""
+    """Start a daemon thread that runs run_check every CHECK_INTERVAL_SEC seconds."""
     def loop():
         while True:
             try:
@@ -71,4 +71,7 @@ def start_background_checker() -> None:
 
     t = threading.Thread(target=loop, daemon=True)
     t.start()
-    logger.info("Background checker started (every %s min)", CHECK_INTERVAL_SEC // 60)
+    if CHECK_INTERVAL_SEC >= 60:
+        logger.info("Background checker started (every %s min)", CHECK_INTERVAL_SEC // 60)
+    else:
+        logger.info("Background checker started (every %s sec)", CHECK_INTERVAL_SEC)

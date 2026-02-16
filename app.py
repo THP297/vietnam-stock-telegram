@@ -1,4 +1,4 @@
-"""API only: observer prices, history, 5-min checker. UI is React (frontend/)."""
+"""API only: observer prices, history, 30-sec checker. UI is React (frontend/)."""
 import logging
 
 from flask import Flask, jsonify, request
@@ -6,7 +6,7 @@ from flask import Flask, jsonify, request
 from config import DEFAULT_SYMBOLS, SYMBOLS
 from store import get_history_filtered, load_observers, save_observers
 
-# Start background checker (every 5 min)
+# Start background checker (every 30 sec)
 try:
     from alert_checker import start_background_checker
     start_background_checker()

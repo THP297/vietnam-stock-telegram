@@ -51,7 +51,7 @@ Optional: set `STOCK_SYMBOLS` (comma-separated), e.g. `VCB,TCB,FPT,VNM,VHM,VNIND
 
 ### Web UI (observer prices & alerts)
 
-**Python = API only.** The UI is **React** (Vite + TypeScript) in `frontend/`. Set target prices per symbol; when the price is at or below your target, you get a Telegram alert. The app checks **every 5 minutes**.
+**Python = API only.** The UI is **React** (Vite + TypeScript) in `frontend/`. Set target prices per symbol; when the price is at or below your target, you get a Telegram alert. The app checks **every 30 seconds**.
 
 Run both the API and the React app:
 

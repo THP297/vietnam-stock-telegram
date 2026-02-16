@@ -62,7 +62,7 @@ function App() {
       <h1>Vietnam Stock Observer</h1>
       <p className="sub">
         Set a target price per symbol. When price is at or below target, you get
-        a Telegram alert. Check runs every 5 minutes.
+        a Telegram alert. Check runs every 30 seconds.
       </p>
 
       <section className="card">
