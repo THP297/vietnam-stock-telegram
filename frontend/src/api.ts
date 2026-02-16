@@ -1,0 +1,43 @@
+const API_BASE = import.meta.env.VITE_API_URL ?? "";
+const API = API_BASE ? `${API_BASE.replace(/\/$/, "")}/api` : "/api";
+
+export type SymbolsResponse = { symbols: string[] };
+export type ObserversResponse = Record<string, string>;
+export type HistoryItem = {
+  symbol: string;
+  target: number;
+  price: number;
+  at: string;
+};
+export type HistoryResponse = { history: HistoryItem[] };
+
+export async function fetchSymbols(): Promise<string[]> {
+  const res = await fetch(`${API}/symbols`);
+  const data: SymbolsResponse = await res.json();
+  return data.symbols ?? [];
+}
+
+export async function fetchObservers(): Promise<ObserversResponse> {
+  const res = await fetch(`${API}/observers`);
+  const data: ObserversResponse = await res.json();
+  return data ?? {};
+}
+
+export async function saveObservers(
+  observers: Record<string, string>
+): Promise<void> {
+  await fetch(`${API}/observers`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(observers),
+  });
+}
+
+export async function fetchHistory(symbol?: string): Promise<HistoryItem[]> {
+  const url = symbol
+    ? `${API}/history?symbol=${encodeURIComponent(symbol)}`
+    : `${API}/history`;
+  const res = await fetch(url);
+  const data: HistoryResponse = await res.json();
+  return data.history ?? [];
+}
