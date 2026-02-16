@@ -140,7 +140,39 @@ If you don’t set `DATABASE_URL`, the app uses JSON files in `data/` (no Postgr
 - **Free accounts:** Only allowlisted domains can be used for outbound HTTPS. `api.telegram.org` is already allowlisted. For Supabase/Neon (e.g. `*.supabase.com`, `*.neon.tech`) and for price data (e.g. VNDirect, Yahoo), either use a **paid account** (unrestricted outbound) or request domains via [PythonAnywhere allowlist](https://help.pythonanywhere.com/pages/RequestingAllowlistAdditions/).
 - **Paid accounts:** Outbound HTTPS is unrestricted; Telegram, Supabase/Neon, and price APIs work without changes.
 
-### 4.6 Frontend with PythonAnywhere API
+### 4.6 Troubleshooting: "Hello from Flask!" or 404 on /api/symbols
+
+If the root URL shows "Hello from Flask!" or /api/symbols returns 404, the default Flask app is running instead of vietnam-stock-telegram.
+
+1. **Edit the correct WSGI file**  
+   You must edit `/var/www/136leonard_pythonanywhere_com_wsgi.py` (open it from the **Web** tab → WSGI configuration file link). The `wsgi.py` inside your project folder is **not** used.
+
+2. **Ensure it loads this project**  
+   The file must contain:
+
+   ```python
+   import sys
+   project_home = '/home/136leonard/vietnam-stock-telegram'
+   if project_home not in sys.path:
+       sys.path = [project_home] + sys.path
+   from app import app as application
+   ```
+
+   There must be **no** `from flask_app import app` (that’s the default “Hello from Flask!” app).
+
+3. **Reload the web app**  
+   After saving the WSGI file, click **Reload** on the Web tab.
+
+4. **Check the Error log**  
+   Web tab → Error log (`136leonard.pythonanywhere.com.error.log`). If `from app import app` fails (e.g. missing module), you’ll see a traceback there.
+
+5. **Verify your app**  
+   Once your app is loaded, `https://136leonard.pythonanywhere.com/` should return JSON like `{"ok": true, "app": "vietnam-stock-telegram", ...}` instead of "Hello from Flask!".
+
+6. **Sync code**  
+   If you change `app.py` locally, push to Git and run `git pull` in `~/vietnam-stock-telegram` on PythonAnywhere, then Reload.
+
+### 4.7 Frontend with PythonAnywhere API
 
 Build the frontend with the PythonAnywhere API URL:
 

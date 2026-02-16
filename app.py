@@ -31,6 +31,16 @@ def get_symbol_list() -> list[str]:
     return [s.strip() for s in (DEFAULT_SYMBOLS or "").split(",") if s.strip()] or list(SYMBOLS)
 
 
+@app.route("/")
+def index():
+    """Health check / confirms this app is running (not default PythonAnywhere app)."""
+    return jsonify({
+        "ok": True,
+        "app": "vietnam-stock-telegram",
+        "endpoints": ["/api/symbols", "/api/observers", "/api/history", "/api/check"],
+    })
+
+
 # API routes
 @app.route("/api/symbols")
 def api_symbols():
