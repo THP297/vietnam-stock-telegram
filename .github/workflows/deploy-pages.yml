@@ -28,8 +28,8 @@ jobs:
         run: cd frontend && npm run build
         env:
           VITE_API_URL: ${{ vars.API_BASE_URL }}
-          # For project Pages: https://USER.github.io/REPO_NAME/
-          VITE_BASE_PATH: ${{ vars.VITE_BASE_PATH }}
+          # Project Pages: https://USER.github.io/vietnam-stock-telegram/ — base must match
+          VITE_BASE_PATH: ${{ vars.VITE_BASE_PATH || '/vietnam-stock-telegram/' }}
 
       - uses: actions/upload-pages-artifact@v3
         with:
