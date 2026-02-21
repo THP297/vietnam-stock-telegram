@@ -63,7 +63,7 @@ def init_schema() -> None:
         cur.execute("CREATE INDEX IF NOT EXISTS idx_history_symbol ON history(symbol);")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_history_at ON history(at DESC);")
         cur.execute("""
-            CREATE TABLE IF NOT EXISTS match_price (
+            CREATE TABLE IF NOT EXISTS observer_price_change (
                 id SERIAL PRIMARY KEY,
                 symbol VARCHAR(20) NOT NULL,
                 target NUMERIC NOT NULL,
@@ -71,8 +71,8 @@ def init_schema() -> None:
                 at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
         """)
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_match_price_symbol ON match_price(symbol);")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_match_price_at ON match_price(at DESC);")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_observer_price_change_symbol ON observer_price_change(symbol);")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_observer_price_change_at ON observer_price_change(at DESC);")
 
 
 def load_observers() -> dict[str, str]:
@@ -178,28 +178,28 @@ def get_history_filtered(symbol: str | None) -> list[dict[str, Any]]:
     return out
 
 
-def insert_match_price(symbol: str, target: float, price: float) -> None:
+def insert_observer_price_change(symbol: str, target: float, price: float) -> None:
     try:
         with _cursor() as cur:
             cur.execute(
-                "INSERT INTO match_price (symbol, target, price, at) VALUES (%s, %s, %s, %s)",
+                "INSERT INTO observer_price_change (symbol, target, price, at) VALUES (%s, %s, %s, %s)",
                 (symbol, target, price, datetime.now(UTC7).replace(tzinfo=None)),
             )
     except Exception as e:
-        logger.warning("db insert_match_price: %s", e)
+        logger.warning("db insert_observer_price_change: %s", e)
 
 
-def get_match_price_filtered(symbol: str | None) -> list[dict[str, Any]]:
+def get_observer_price_change_filtered(symbol: str | None) -> list[dict[str, Any]]:
     out = []
     try:
         with _cursor() as cur:
             if symbol:
                 cur.execute(
-                    "SELECT symbol, target, price, at FROM match_price WHERE UPPER(symbol) = UPPER(%s) ORDER BY at DESC LIMIT 500",
+                    "SELECT symbol, target, price, at FROM observer_price_change WHERE UPPER(symbol) = UPPER(%s) ORDER BY at DESC LIMIT 500",
                     (symbol.strip(),),
                 )
             else:
-                cur.execute("SELECT symbol, target, price, at FROM match_price ORDER BY at DESC LIMIT 500")
+                cur.execute("SELECT symbol, target, price, at FROM observer_price_change ORDER BY at DESC LIMIT 500")
             for row in cur.fetchall():
                 out.append({
                     "symbol": row[0],
@@ -208,5 +208,5 @@ def get_match_price_filtered(symbol: str | None) -> list[dict[str, Any]]:
                     "at": row[3].strftime("%Y-%m-%d %H:%M:%S") if hasattr(row[3], "strftime") else str(row[3]),
                 })
     except Exception as e:
-        logger.warning("db get_match_price_filtered: %s", e)
+        logger.warning("db get_observer_price_change_filtered: %s", e)
     return out

@@ -11,13 +11,15 @@ export type HistoryItem = {
 };
 export type HistoryResponse = { history: HistoryItem[] };
 
-export type MatchPriceItem = {
+export type ObserverPriceChangeItem = {
   symbol: string;
   target: number;
   price: number;
   at: string;
 };
-export type MatchPriceResponse = { match_price: MatchPriceItem[] };
+export type ObserverPriceChangeResponse = {
+  observer_price_change: ObserverPriceChangeItem[];
+};
 
 export async function fetchSymbols(): Promise<string[]> {
   const res = await fetch(`${API}/symbols`);
@@ -50,15 +52,15 @@ export async function fetchHistory(symbol?: string): Promise<HistoryItem[]> {
   return data.history ?? [];
 }
 
-export async function fetchMatchPrice(
+export async function fetchObserverPriceChange(
   symbol?: string
-): Promise<MatchPriceItem[]> {
+): Promise<ObserverPriceChangeItem[]> {
   const url = symbol
-    ? `${API}/match-price?symbol=${encodeURIComponent(symbol)}`
-    : `${API}/match-price`;
+    ? `${API}/observer-price-change?symbol=${encodeURIComponent(symbol)}`
+    : `${API}/observer-price-change`;
   const res = await fetch(url);
-  const data: MatchPriceResponse = await res.json();
-  return data.match_price ?? [];
+  const data: ObserverPriceChangeResponse = await res.json();
+  return data.observer_price_change ?? [];
 }
 
 export type PriceResponse = { symbol: string; price: number };

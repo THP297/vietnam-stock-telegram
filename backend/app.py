@@ -28,7 +28,7 @@ from .fetcher import fetch_prices, fetch_prices_dict
 from .store import (
     append_history,
     get_history_filtered,
-    get_match_price_filtered,
+    get_observer_price_change_filtered,
     load_observers,
     save_observers,
 )
@@ -68,7 +68,7 @@ def index():
             "/api/symbols",
             "/api/observers",
             "/api/history",
-            "/api/match-price",
+            "/api/observer-price-change",
             "/api/price",
             "/api/check",
         ],
@@ -119,11 +119,11 @@ def api_history():
     return jsonify({"history": history})
 
 
-@app.route("/api/match-price")
-def api_match_price():
+@app.route("/api/observer-price-change")
+def api_observer_price_change():
     symbol = request.args.get("symbol", "").strip() or None
-    rows = get_match_price_filtered(symbol)
-    return jsonify({"match_price": rows})
+    rows = get_observer_price_change_filtered(symbol)
+    return jsonify({"observer_price_change": rows})
 
 
 @app.route("/api/price")
