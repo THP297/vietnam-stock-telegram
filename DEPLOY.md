@@ -74,10 +74,27 @@ The UI is in `frontend/`. Build it and point it at your Render API.
 
 2. **Host the build**
 
+   - **GitHub Pages (CI/CD)** – see § 3.1 below. Every push to `main` builds and deploys automatically.
    - **Render**: New → **Static Site** → connect repo, build command `cd frontend && npm install && npm run build`, publish directory `frontend/dist`. Add env `VITE_API_URL=https://vietnam-stock-api.onrender.com` for the build.
-   - **Vercel / Netlify**: Same idea – build `frontend`, publish `frontend/dist`, set `VITE_API_URL` to your Render API URL.
+   - **Vercel / Netlify**: Same idea – build `frontend`, publish `frontend/dist`, set `VITE_API_URL` to your API URL.
 
----
+### 3.1 GitHub Pages (auto deploy on push)
+
+A workflow in `.github/workflows/deploy-pages.yml` builds the frontend and deploys to GitHub Pages on every push to `main`.
+
+**One-time setup**
+
+1. **Enable GitHub Pages from Actions**
+
+   - Repo → **Settings** → **Pages**
+   - Under **Build and deployment**, set **Source** to **GitHub Actions**.
+
+2. **Set repository variables** (Settings → Secrets and variables → Actions → **Variables**):
+
+   - `API_BASE_URL` – your API base URL (no trailing slash), e.g. `https://136leonard.pythonanywhere.com` or `https://your-app.onrender.com`. The build injects this as `VITE_API_URL`.
+   - `VITE_BASE_PATH` (optional) – only for **project** Pages. If your site is `https://USER.github.io/REPO_NAME/`, set `VITE_BASE_PATH` to `/vietnam-stock-telegram/` (or your repo name with slashes). Leave empty for a user/org site (`https://USER.github.io/`) or custom domain.
+
+3. **Push to `main`** – the workflow runs, builds the frontend, and deploys. The site will be at the URL shown in Settings → Pages (e.g. `https://USER.github.io/vietnam-stock-telegram/`).
 
 ---
 

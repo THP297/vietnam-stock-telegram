@@ -6,6 +6,7 @@ import time
 from config import INDEX_CODES, SYMBOLS, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
 from fetcher import fetch_prices_dict
 from store import (
+    USE_DB,
     append_history,
     load_last_alerted,
     load_observers,
@@ -25,7 +26,14 @@ def run_check() -> None:
     observers = load_observers()
     if not observers:
         return
-    prices = fetch_prices_dict(SYMBOLS, INDEX_CODES)
+    # When using DB, fetch prices only for observer symbols (+ indices). Else use config SYMBOLS.
+    index_set = set(INDEX_CODES)
+    if USE_DB:
+        stock_symbols = [s for s in observers if s not in index_set]
+        symbols_to_fetch = stock_symbols if stock_symbols else list(SYMBOLS)
+    else:
+        symbols_to_fetch = list(SYMBOLS)
+    prices = fetch_prices_dict(symbols_to_fetch, INDEX_CODES)
     if not prices:
         return
     last_alerted = load_last_alerted()

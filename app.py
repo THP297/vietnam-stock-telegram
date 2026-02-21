@@ -3,8 +3,8 @@ import logging
 
 from flask import Flask, jsonify, request
 
-from config import DEFAULT_SYMBOLS, SYMBOLS
-from store import get_history_filtered, load_observers, save_observers
+from config import SYMBOLS
+from store import get_history_filtered, load_observers, save_observers, USE_DB
 
 # Start background checker (every 30 sec)
 try:
@@ -27,8 +27,12 @@ def cors(resp):
 
 
 def get_symbol_list() -> list[str]:
-    """Symbols to show in UI (from DEFAULT_SYMBOLS / config)."""
-    return [s.strip() for s in (DEFAULT_SYMBOLS or "").split(",") if s.strip()] or list(SYMBOLS)
+    """Symbols to show in UI: DB = observer keys + config list; no DB = config only."""
+    if USE_DB:
+        observers = load_observers()
+        # Merge so user sees observer symbols and can add more from config default
+        return sorted(set(observers.keys()) | set(SYMBOLS))
+    return list(SYMBOLS)
 
 
 @app.route("/")
