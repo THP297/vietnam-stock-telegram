@@ -17,8 +17,71 @@
   background: var(--bg);
   color: var(--text);
   margin: 0;
-  padding: 24px;
   min-height: 100vh;
+  display: flex;
+}
+
+.sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: var(--card);
+  border-right: 1px solid var(--border);
+  padding: 20px 0;
+}
+
+.sidebar-title {
+  font-size: 1.1rem;
+  margin: 0 16px 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 20px;
+  text-align: left;
+  background: transparent;
+  color: var(--muted);
+  border: none;
+  border-left: 3px solid transparent;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: color 0.2s, background 0.2s;
+}
+
+.sidebar-item:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.sidebar-item.active {
+  color: var(--accent);
+  background: rgba(29, 155, 240, 0.12);
+  border-left-color: var(--accent);
+}
+
+.sidebar-icon {
+  font-size: 1.1rem;
+}
+
+.main-content {
+  flex: 1;
+  padding: 24px;
+  overflow: auto;
+}
+
+.page-card {
+  max-width: 480px;
 }
 
 h1 {
@@ -45,9 +108,45 @@ h1 {
   color: var(--muted);
 }
 
+.card-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.card-header-row .sub {
+  margin-bottom: 0;
+}
+
+.btn-add-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.btn-add-icon:hover {
+  opacity: 0.9;
+}
+
+.btn-add-icon svg {
+  display: block;
+}
+
 .symbol-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: 12px;
 }
 
@@ -74,6 +173,175 @@ h1 {
 
 .symbol-row input::placeholder {
   color: var(--muted);
+}
+
+.symbol-row .btn-remove {
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.symbol-row .btn-remove:hover {
+  color: #f4212e;
+  border-color: #f4212e;
+}
+
+/* Add symbol modal */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 24px;
+  animation: fade 0.2s;
+}
+
+.modal-content {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 0;
+  max-width: 400px;
+  width: 100%;
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--text);
+}
+
+.modal-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: transparent;
+  color: var(--muted);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.modal-close:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.add-symbol-form {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.add-symbol-form label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.add-symbol-form input {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 1rem;
+}
+
+.add-symbol-form input::placeholder {
+  color: var(--muted);
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.modal-actions .btn-add {
+  padding: 10px 20px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.modal-actions .btn-add:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.modal-actions .btn-add:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.price-lookup {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.price-lookup label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.price-lookup-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.price-lookup-row input {
+  flex: 1;
+  max-width: 200px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 1rem;
+}
+
+.price-result {
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+.price-result.price-ok {
+  background: rgba(0, 186, 124, 0.15);
+  color: var(--green);
+}
+
+.price-result.price-error {
+  background: rgba(244, 33, 46, 0.12);
+  color: #f4212e;
 }
 
 .actions {

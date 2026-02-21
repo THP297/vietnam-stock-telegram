@@ -1,9 +1,10 @@
-"""PostgreSQL store for Supabase / Neon. Used when DATABASE_URL is set."""
 import logging
 import os
 from contextlib import contextmanager
 from datetime import datetime
 from typing import Any
+
+from .config import UTC7
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +38,6 @@ def _cursor():
 
 
 def init_schema() -> None:
-    """Create tables if they don't exist (Supabase/Neon compatible)."""
     with _cursor() as cur:
         cur.execute("""
             CREATE TABLE IF NOT EXISTS observers (
@@ -114,7 +114,7 @@ def append_history(symbol: str, target: float, price: float) -> None:
         with _cursor() as cur:
             cur.execute(
                 "INSERT INTO history (symbol, target, price, at) VALUES (%s, %s, %s, %s)",
-                (symbol, target, price, datetime.utcnow()),
+                (symbol, target, price, datetime.now(UTC7).replace(tzinfo=None)),
             )
     except Exception as e:
         logger.warning("db append_history: %s", e)

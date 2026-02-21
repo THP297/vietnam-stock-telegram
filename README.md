@@ -1,6 +1,6 @@
 # Vietnam Stock → Telegram
 
-Fetches Vietnam stock prices every **1 minute** and sends them to your personal Telegram.
+Observer-based alerts: set target prices per symbol; when price is at or below target, you get a Telegram alert (check runs every 30 seconds). Optional: one-off broadcast of all configured symbols to Telegram.
 
 ## Setup
 
@@ -34,19 +34,19 @@ Optional: set `STOCK_SYMBOLS` (comma-separated), e.g. `VCB,TCB,FPT,VNM,VHM,VNIND
 
 ## Run
 
-- **Every 1 minute** (default):
+- **API + background checker** (default; use this for the Web UI):
 
   ```bash
-  python main.py
-  # or: python3 main.py   or: .venv/bin/python main.py
+  python run.py
+  # or: python3 run.py   or: .venv/bin/python run.py
   ```
 
-- **Once** (single fetch and send):
+  Starts the Flask API (port 5003) and the 30-second alert checker.
+
+- **Once** (single fetch of config symbols and send one Telegram message):
 
   ```bash
-  python main.py --once
-  # If `python` is not found (e.g. pyenv): use python3 or .venv/bin/python
-  .venv/bin/python main.py --once
+  python run.py --once
   ```
 
 ### Web UI (observer prices & alerts)
@@ -56,18 +56,18 @@ Optional: set `STOCK_SYMBOLS` (comma-separated), e.g. `VCB,TCB,FPT,VNM,VHM,VNIND
 Run both the API and the React app:
 
 ```bash
-# Terminal 1: Flask API (default port 5003; set in app.py if needed)
-python app.py
+# Terminal 1: Flask API (default port 5003; set FLASK_PORT in .env)
+python run.py
 
 # Terminal 2: React UI — Vite proxies /api to Flask
 cd frontend && npm install && npm run dev
 # Open http://127.0.0.1:5173
 ```
 
-For production, build the frontend and serve `frontend/dist` with any static server (e.g. `npx serve frontend/dist`); keep `python app.py` running for the API. Point the frontend’s API base URL at your Flask host, or use the same proxy in your deployment.
+For production, build the frontend and serve `frontend/dist` with any static server (e.g. `npx serve frontend/dist`); keep `python run.py` running for the API. Point the frontend’s API base URL at your Flask host, or use the same proxy in your deployment.
 
-- **Observer prices**: One input per symbol (from `DEFAULT_SYMBOLS` in config). Enter a number (e.g. `95500`); alert fires when current price ≤ that value. Click **Save** to store.
-- **Alert history**: Table of past alerts; use the dropdown to filter by symbol.
+- **Observer prices**: Add symbols and target prices in the UI. Alert fires when current price ≤ target. Click **Save** to store.
+- **Alert history**: Table of past alerts; filter by symbol.
 
 ## Data sources (tried in order)
 

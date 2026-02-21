@@ -24,11 +24,11 @@ No manual table creation needed: the API creates `observers`, `history`, and `la
 
 1. Go to [render.com](https://render.com) → **New** → **Web Service**.
 2. Connect your repo (or use the repo that contains this project).
-3. **Root directory**: leave blank or set to the folder that contains `app.py`, `requirements.txt`, etc. (e.g. `vietnam-stock-telegram` if the repo root is above it).
+3. **Root directory**: leave blank or set to the folder that contains `run.py`, `backend/`, `requirements.txt` (e.g. `vietnam-stock-telegram` if the repo root is above it).
 4. **Build command**: `pip install -r requirements.txt`  
    (If you use a subfolder: `cd vietnam-stock-telegram && pip install -r requirements.txt`)
-5. **Start command**: `gunicorn -w 1 -b 0.0.0.0:$PORT app:app`  
-   (If subfolder: `cd vietnam-stock-telegram && gunicorn -w 1 -b 0.0.0.0:$PORT app:app`)
+5. **Start command**: `gunicorn -w 1 -b 0.0.0.0:$PORT backend.app:app`  
+   (If subfolder: `cd vietnam-stock-telegram && gunicorn -w 1 -b 0.0.0.0:$PORT backend.app:app`)
 6. **Environment variables** (Render → Environment):
    - `TELEGRAM_BOT_TOKEN` – from BotFather
    - `TELEGRAM_CHAT_ID` – your chat ID
@@ -108,7 +108,7 @@ PythonAnywhere keeps the web app running (no sleep), so the in-process 30‑seco
   ```bash
   cd ~
   git clone https://github.com/YOUR_USER/YOUR_REPO.git
-  cd vietnam-stock-telegram   # or the folder that contains app.py
+  cd vietnam-stock-telegram
   ```
 - **Option B – Upload:** Zip the project (excluding `frontend/node_modules`, `__pycache__`, `.env`) and upload via **Files**, then extract in your home directory (e.g. `~/vietnam-stock-telegram`).
 
@@ -199,7 +199,7 @@ If the root URL shows "Hello from Flask!" or /api/symbols returns 404, the defau
    Once your app is loaded, `https://136leonard.pythonanywhere.com/` should return JSON like `{"ok": true, "app": "vietnam-stock-telegram", ...}` instead of "Hello from Flask!".
 
 6. **Sync code**  
-   If you change `app.py` locally, push to Git and run `git pull` in `~/vietnam-stock-telegram` on PythonAnywhere, then Reload.
+   If you change the backend code locally, push to Git and run `git pull` in `~/vietnam-stock-telegram` on PythonAnywhere, then Reload.
 
 ### 4.7 Frontend with PythonAnywhere API
 

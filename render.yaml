@@ -7,7 +7,7 @@ services:
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn -w 1 -b 0.0.0.0:$PORT app:app
+    startCommand: gunicorn -w 1 -b 0.0.0.0:$PORT backend.app:app
     envVars:
       - key: TELEGRAM_BOT_TOKEN
         sync: false
@@ -16,7 +16,7 @@ services:
       - key: DATABASE_URL
         sync: false
       - key: STOCK_SYMBOLS
-        generateValue: "VCB,TCB,SSI,VNM,FPT,VNINDEX,VN30"
+        value: "VCB,TCB,SSI,VNM,FPT,VNINDEX,VN30"
       - key: VNSTOCK_API_KEY
         sync: false
       - key: PYTHON_VERSION

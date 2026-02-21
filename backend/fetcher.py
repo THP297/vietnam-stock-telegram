@@ -1,7 +1,8 @@
-"""Fetch Vietnam stock prices: vnstock (thinh-vu/vnstock) → VNDirect WebSocket → VNDirect REST → Yahoo Finance."""
 import asyncio
 import json
 import logging
+import random
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
@@ -9,21 +10,24 @@ from typing import Optional
 
 import requests
 
+from .config import (
+    REQUEST_TIMEOUT,
+    SAMPLE_HPG_MAX,
+    SAMPLE_HPG_MIN,
+    SAMPLE_PRICES,
+    SAMPLE_PRICES_ROTATE_MINUTES,
+    VNDIRECT_REST_URL,
+    VNDIRECT_WS_URL,
+    WS_WAIT_SEC,
+)
+
 logger = logging.getLogger(__name__)
 
-# Timeouts (seconds)
-REQUEST_TIMEOUT = 8
 HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; StockBot/1.0)", "Accept": "application/json"}
 
-# VNDirect realtime WebSocket (from https://github.com/hoangnt2601/Real-time-data-vndirect)
-VNDIRECT_WS_URL = "wss://price-cmc-04.vndirect.com.vn/realtime/websocket"
-WS_WAIT_SEC = 5
-# Message types: BA=BidAsk (matchPrice), SP=StockPartial (currentPrice), MI=MarketInformation (indexValue)
 BA, SP, MI = "BA", "SP", "MI"
-# MI market IDs: 10=VNINDEX, 11=VN30, 12=HNX30, 13=VNXALL, 02=HNX, 03=UPCOM
 MI_IDS = {"10": "VNINDEX", "11": "VN30", "12": "HNX30", "13": "VNXALL", "02": "HNX", "03": "UPCOM"}
 
-# vnstock from https://github.com/thinh-vu/vnstock (Trading.price_board, optional register_user)
 VNSTOCK_AVAILABLE = False
 try:
     from vnstock import Trading
@@ -33,7 +37,6 @@ except Exception:
 
 
 def _vnstock_register_if_configured() -> None:
-    """Optional: register vnstock user for higher rate limits (see vnstocks.com/login)."""
     try:
         api_key = __import__("os").environ.get("VNSTOCK_API_KEY", "").strip()
         if api_key:
@@ -42,7 +45,6 @@ def _vnstock_register_if_configured() -> None:
     except Exception:
         pass
 
-# Yahoo Finance
 YFINANCE_AVAILABLE = False
 try:
     import yfinance as yf
@@ -52,7 +54,6 @@ except Exception:
 
 
 def _vndirect_realtime_prices(symbols: list[str]) -> Optional[str]:
-    """Real-time prices via VNDirect WebSocket (see hoangnt2601/Real-time-data-vndirect)."""
     symbol_set = {s.strip().upper() for s in symbols}
     index_set = {"VNINDEX", "VN30", "HNXINDEX", "HNX30", "HNX", "UPCOM", "VNXALL"}
     stock_symbols = [s for s in symbol_set if s not in index_set][:20]
@@ -66,8 +67,8 @@ def _vndirect_realtime_prices(symbols: list[str]) -> Optional[str]:
 
 async def _vndirect_ws_fetch(stock_symbols: list[str], index_ids: list[str]) -> Optional[str]:
     import websockets
-    prices = {}  # symbol -> price (stocks)
-    indices = {}  # name -> value (VNINDEX, VN30, ...)
+    prices = {}
+    indices = {}
     try:
         async with websockets.connect(VNDIRECT_WS_URL, ssl=True, close_timeout=2) as ws:
             if stock_symbols:
@@ -116,8 +117,7 @@ async def _vndirect_ws_fetch(stock_symbols: list[str], index_ids: list[str]) -> 
 
 
 def _fetch_one_vndirect(sym: str) -> Optional[tuple[str, float, str]]:
-    """Fetch one symbol from VNDirect. Returns (symbol, close, date) or None."""
-    base = "https://finfo-api.vndirect.com.vn/v4/stock_prices"
+    base = VNDIRECT_REST_URL
     today = datetime.now().strftime("%Y-%m-%d")
     from_d = (datetime.now() - timedelta(days=10)).strftime("%Y-%m-%d")
     q = f"code:{sym}~date:gte:{from_d}~date:lte:{today}"
@@ -143,7 +143,6 @@ def _fetch_one_vndirect(sym: str) -> Optional[tuple[str, float, str]]:
 
 
 def _vndirect_prices(symbols: list[str]) -> Optional[str]:
-    """Fetch latest close from VNDirect in parallel."""
     index_set = {"VNINDEX", "VN30", "HNXINDEX", "HNX30"}
     stock_symbols = [s.strip().upper() for s in symbols if s.strip().upper() not in index_set][:20]
     if not stock_symbols:
@@ -171,7 +170,6 @@ def _vndirect_prices(symbols: list[str]) -> Optional[str]:
 
 
 def _vnstock_price_board(trading_source: str, stock_symbols: list[str]) -> Optional[list[str]]:
-    """Get price board lines from vnstock Trading(source).price_board(). Returns list of 'SYM: price' lines or None."""
     if not VNSTOCK_AVAILABLE or not stock_symbols:
         return None
     lines = []
@@ -194,7 +192,6 @@ def _vnstock_price_board(trading_source: str, stock_symbols: list[str]) -> Optio
 
 
 def _vnstock_prices(symbols: list[str], index_codes: tuple) -> Optional[str]:
-    """Fetch current prices using vnstock (thinh-vu/vnstock). Try KBS then VCI source."""
     if not VNSTOCK_AVAILABLE:
         return None
     _vnstock_register_if_configured()
@@ -202,7 +199,6 @@ def _vnstock_prices(symbols: list[str], index_codes: tuple) -> Optional[str]:
     stock_symbols = [s for s in symbols if s.upper() not in index_set][:20]
     if not stock_symbols:
         return None
-    # Try KBS first (TCBS), then VCI per vnstock docs
     for source in ("KBS", "VCI"):
         lines = _vnstock_price_board(source, stock_symbols)
         if lines:
@@ -213,7 +209,6 @@ def _vnstock_prices(symbols: list[str], index_codes: tuple) -> Optional[str]:
 
 
 def _yfinance_prices(symbols: list[str]) -> Optional[str]:
-    """Fetch latest close from Yahoo Finance (symbol.VN). Works when VN APIs are blocked."""
     if not YFINANCE_AVAILABLE:
         return None
     index_set = {"VNINDEX", "VN30", "HNXINDEX", "HNX30"}
@@ -240,14 +235,11 @@ def _yfinance_prices(symbols: list[str]) -> Optional[str]:
 
 
 def fetch_prices(symbols: list[str], index_codes: tuple) -> str:
-    """Get Vietnam stock prices. Prefer vnstock (GitHub) → VNDirect WS → VNDirect REST → Yahoo."""
-    # 1) vnstock from https://github.com/thinh-vu/vnstock (KBS then VCI)
     if VNSTOCK_AVAILABLE:
         logger.info("Trying vnstock (thinh-vu/vnstock)...")
         text = _vnstock_prices(symbols, index_codes)
         if text:
             return text
-    # 2) VNDirect real-time WebSocket
     try:
         logger.info("Trying VNDirect WebSocket (realtime)...")
         text = _vndirect_realtime_prices(symbols)
@@ -256,13 +248,11 @@ def fetch_prices(symbols: list[str], index_codes: tuple) -> str:
             return text
     except Exception as e:
         logger.debug("VNDirect WS: %s", e)
-    # 3) VNDirect REST
     logger.info("Trying VNDirect REST...")
     text = _vndirect_prices(symbols)
     if text:
         logger.info("VNDirect REST OK")
         return text
-    # 4) Yahoo Finance
     if YFINANCE_AVAILABLE:
         logger.info("Trying Yahoo Finance (.VN)...")
         text = _yfinance_prices(symbols)
@@ -273,7 +263,6 @@ def fetch_prices(symbols: list[str], index_codes: tuple) -> str:
 
 
 def parse_prices_text(text: str) -> dict[str, float]:
-    """Parse fetcher output (e.g. '📈 VCB: 95,500') into {symbol: price}. Handles 📈 and 📊 lines."""
     result = {}
     for line in text.split("\n"):
         line = line.strip()
@@ -284,7 +273,6 @@ def parse_prices_text(text: str) -> dict[str, float]:
             continue
         symbol, value = rest.split(":", 1)
         symbol = symbol.strip()
-        # value may be "95,500" or "95,500 (2026-02-16)" or "1,250.52"
         value = value.strip().split("(")[0].strip().replace(",", "")
         try:
             result[symbol] = float(value)
@@ -293,8 +281,41 @@ def parse_prices_text(text: str) -> dict[str, float]:
     return result
 
 
+_sample_hpg_price: Optional[float] = None
+_sample_lock = threading.Lock()
+_sample_thread_started = False
+
+
+def _sample_price_loop() -> None:
+    global _sample_hpg_price
+    while True:
+        time.sleep(SAMPLE_PRICES_ROTATE_MINUTES * 60)
+        with _sample_lock:
+            _sample_hpg_price = float(random.randint(SAMPLE_HPG_MIN, SAMPLE_HPG_MAX))
+        logger.info("Sample HPG price set to %s", _sample_hpg_price)
+
+
 def fetch_prices_dict(symbols: list[str], index_codes: tuple) -> dict[str, float]:
-    """Return current prices as {symbol: price}. Empty dict if fetch failed."""
+    if SAMPLE_PRICES:
+        global _sample_thread_started, _sample_hpg_price
+        with _sample_lock:
+            if not _sample_thread_started:
+                _sample_thread_started = True
+                _sample_hpg_price = float(random.randint(SAMPLE_HPG_MIN, SAMPLE_HPG_MAX))
+                t = threading.Thread(target=_sample_price_loop, daemon=True)
+                t.start()
+                logger.info(
+                    "Sample price mode: HPG only, random %s-%s every %s min",
+                    SAMPLE_HPG_MIN,
+                    SAMPLE_HPG_MAX,
+                    SAMPLE_PRICES_ROTATE_MINUTES,
+                )
+            current = _sample_hpg_price
+        result = {}
+        for s in symbols:
+            if str(s).strip().upper() == "HPG":
+                result["HPG"] = current
+        return result
     text = fetch_prices(symbols, index_codes)
     if not text or text.startswith("⚠️"):
         return {}

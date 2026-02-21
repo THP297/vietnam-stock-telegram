@@ -41,3 +41,20 @@ export async function fetchHistory(symbol?: string): Promise<HistoryItem[]> {
   const data: HistoryResponse = await res.json();
   return data.history ?? [];
 }
+
+export type PriceResponse = { symbol: string; price: number };
+export type PriceErrorResponse = { error: string };
+
+export async function fetchCurrentPrice(
+  symbol: string
+): Promise<{ symbol: string; price: number } | { error: string }> {
+  const sym = symbol.trim().toUpperCase();
+  if (!sym) return { error: "Symbol is required" };
+  const res = await fetch(`${API}/price?symbol=${encodeURIComponent(sym)}`);
+  const data = await res.json();
+  if (!res.ok)
+    return {
+      error: (data as PriceErrorResponse).error ?? "Failed to get price",
+    };
+  return data as PriceResponse;
+}

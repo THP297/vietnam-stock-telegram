@@ -1,42 +1,47 @@
-"""Run every 30 seconds: compare prices to observers, send Telegram on match, update history."""
 import logging
 import threading
 import time
 
-from config import INDEX_CODES, SYMBOLS, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
-from fetcher import fetch_prices_dict
-from store import (
-    USE_DB,
+from .config import (
+    CHECK_INTERVAL_SEC,
+    INDEX_CODES,
+    PRICE_BAND_PCT,
+    SAMPLE_PRICES,
+    TELEGRAM_BOT_TOKEN,
+    TELEGRAM_CHAT_ID,
+)
+from .fetcher import fetch_prices_dict
+from .store import (
     append_history,
     load_last_alerted,
     load_observers,
     save_last_alerted,
 )
-from telegram_send import send_telegram
+from .telegram_send import send_telegram
 
 logger = logging.getLogger(__name__)
 
-CHECK_INTERVAL_SEC = 30  # 30 seconds
+_last_seen_prices: dict[str, float] = {}
 
 
 def run_check() -> None:
-    """Fetch prices, compare to observers, send alerts and update history."""
+    global _last_seen_prices
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
         return
     observers = load_observers()
     if not observers:
         return
-    # When using DB, fetch prices only for observer symbols (+ indices). Else use config SYMBOLS.
     index_set = set(INDEX_CODES)
-    if USE_DB:
-        stock_symbols = [s for s in observers if s not in index_set]
-        symbols_to_fetch = stock_symbols if stock_symbols else list(SYMBOLS)
-    else:
-        symbols_to_fetch = list(SYMBOLS)
-    prices = fetch_prices_dict(symbols_to_fetch, INDEX_CODES)
+    stock_symbols = [s for s in observers if s not in index_set]
+    prices = fetch_prices_dict(stock_symbols, INDEX_CODES)
     if not prices:
         return
     last_alerted = load_last_alerted()
+    if SAMPLE_PRICES:
+        for sym, p in prices.items():
+            if _last_seen_prices.get(sym) != p:
+                last_alerted.pop(sym, None)
+                _last_seen_prices[sym] = p
     updated = False
     for symbol, target_str in list(observers.items()):
         symbol = symbol.strip().upper()
@@ -49,15 +54,17 @@ def run_check() -> None:
         current = prices.get(symbol)
         if current is None:
             continue
-        # Alert when current price <= target (price reached or dropped to target)
-        if current > target:
+        low = target * (1 - PRICE_BAND_PCT)
+        high = target * (1 + PRICE_BAND_PCT)
+        inside_band = low < current < high
+        if not inside_band:
             if last_alerted.get(symbol) == target:
                 last_alerted.pop(symbol, None)
                 updated = True
             continue
         if last_alerted.get(symbol) == target:
             continue
-        msg = f"🔔 Price alert: {symbol} = {current:,.0f} (target ≤ {target:,.0f})"
+        msg = f"🔔 Price alert: {symbol} = {current:,.0f} (within 0.1% of target {target:,.0f})"
         if send_telegram(TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, msg):
             append_history(symbol, target, current)
             last_alerted[symbol] = target
@@ -68,7 +75,6 @@ def run_check() -> None:
 
 
 def start_background_checker() -> None:
-    """Start a daemon thread that runs run_check every CHECK_INTERVAL_SEC seconds."""
     def loop():
         while True:
             try:

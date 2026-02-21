@@ -7,6 +7,7 @@ export default defineConfig({
   base: process.env.VITE_BASE_PATH || "/",
   plugins: [react()],
   server: {
+    // Backend port: match FLASK_PORT in backend .env (default 5003)
     proxy: {
       "/api": { target: "http://127.0.0.1:5003", changeOrigin: true },
     },

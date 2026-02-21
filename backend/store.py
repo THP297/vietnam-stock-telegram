@@ -1,19 +1,20 @@
-"""Persist observer prices and alert history. Uses PostgreSQL when DATABASE_URL is set, else JSON files."""
 import json
 import logging
 import os
 from datetime import datetime
-from pathlib import Path
 from typing import Any
+
+from .config import DATA_DIR, UTC7
 
 logger = logging.getLogger(__name__)
 
-DATA_DIR = Path(__file__).resolve().parent / "data"
 OBSERVERS_FILE = DATA_DIR / "observers.json"
 HISTORY_FILE = DATA_DIR / "history.json"
 LAST_ALERTED_FILE = DATA_DIR / "last_alerted.json"
 
-USE_DB = bool(os.getenv("DATABASE_URL", "").strip())
+
+def _use_db() -> bool:
+    return bool(os.getenv("DATABASE_URL", "").strip())
 
 
 def _ensure_dir() -> None:
@@ -21,8 +22,8 @@ def _ensure_dir() -> None:
 
 
 def load_observers() -> dict[str, str]:
-    if USE_DB:
-        from db import load_observers as _load
+    if _use_db():
+        from .db import load_observers as _load
         return _load()
     _ensure_dir()
     if not OBSERVERS_FILE.exists():
@@ -37,8 +38,8 @@ def load_observers() -> dict[str, str]:
 
 
 def save_observers(observers: dict[str, str]) -> None:
-    if USE_DB:
-        from db import save_observers as _save
+    if _use_db():
+        from .db import save_observers as _save
         return _save(observers)
     _ensure_dir()
     with open(OBSERVERS_FILE, "w", encoding="utf-8") as f:
@@ -46,8 +47,8 @@ def save_observers(observers: dict[str, str]) -> None:
 
 
 def load_history() -> list[dict[str, Any]]:
-    if USE_DB:
-        from db import load_history as _load
+    if _use_db():
+        from .db import load_history as _load
         return _load()
     _ensure_dir()
     if not HISTORY_FILE.exists():
@@ -62,8 +63,8 @@ def load_history() -> list[dict[str, Any]]:
 
 
 def append_history(symbol: str, target: float, price: float) -> None:
-    if USE_DB:
-        from db import append_history as _append
+    if _use_db():
+        from .db import append_history as _append
         return _append(symbol, target, price)
     _ensure_dir()
     history = load_history()
@@ -71,7 +72,7 @@ def append_history(symbol: str, target: float, price: float) -> None:
         "symbol": symbol,
         "target": target,
         "price": price,
-        "at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "at": datetime.now(UTC7).strftime("%Y-%m-%d %H:%M:%S"),
     })
     history = history[:500]
     with open(HISTORY_FILE, "w", encoding="utf-8") as f:
@@ -79,8 +80,8 @@ def append_history(symbol: str, target: float, price: float) -> None:
 
 
 def load_last_alerted() -> dict[str, float]:
-    if USE_DB:
-        from db import load_last_alerted as _load
+    if _use_db():
+        from .db import load_last_alerted as _load
         return _load()
     _ensure_dir()
     if not LAST_ALERTED_FILE.exists():
@@ -94,8 +95,8 @@ def load_last_alerted() -> dict[str, float]:
 
 
 def save_last_alerted(last: dict[str, float]) -> None:
-    if USE_DB:
-        from db import save_last_alerted as _save
+    if _use_db():
+        from .db import save_last_alerted as _save
         return _save(last)
     _ensure_dir()
     with open(LAST_ALERTED_FILE, "w", encoding="utf-8") as f:
@@ -103,8 +104,8 @@ def save_last_alerted(last: dict[str, float]) -> None:
 
 
 def get_history_filtered(symbol: str | None) -> list[dict[str, Any]]:
-    if USE_DB:
-        from db import get_history_filtered as _get
+    if _use_db():
+        from .db import get_history_filtered as _get
         return _get(symbol)
     history = load_history()
     if symbol:

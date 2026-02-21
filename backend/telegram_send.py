@@ -1,24 +1,20 @@
-"""Send messages to personal Telegram via Bot API."""
 import logging
 
 import requests
 
-logger = logging.getLogger(__name__)
+from .config import MAX_MESSAGE_LENGTH, TELEGRAM_API_BASE
 
-# Telegram max message length (UTF-8)
-MAX_MESSAGE_LENGTH = 4096
+logger = logging.getLogger(__name__)
 
 
 def send_telegram(bot_token: str, chat_id: str, text: str) -> bool:
-    """Send a text message to Telegram. Returns True on success."""
     if not bot_token or not chat_id:
         logger.error("TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID are required")
         return False
-    # Normalize: digits only, or keep minus for groups (e.g. -100123)
     chat_id = str(chat_id).strip()
     if len(text) > MAX_MESSAGE_LENGTH:
         text = text[: MAX_MESSAGE_LENGTH - 3] + "..."
-    url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+    url = f"{TELEGRAM_API_BASE}/bot{bot_token}/sendMessage"
     try:
         r = requests.post(
             url,
