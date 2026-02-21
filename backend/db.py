@@ -62,6 +62,17 @@ def init_schema() -> None:
         """)
         cur.execute("CREATE INDEX IF NOT EXISTS idx_history_symbol ON history(symbol);")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_history_at ON history(at DESC);")
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS match_price (
+                id SERIAL PRIMARY KEY,
+                symbol VARCHAR(20) NOT NULL,
+                target NUMERIC NOT NULL,
+                price NUMERIC NOT NULL,
+                at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_match_price_symbol ON match_price(symbol);")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_match_price_at ON match_price(at DESC);")
 
 
 def load_observers() -> dict[str, str]:
@@ -164,4 +175,38 @@ def get_history_filtered(symbol: str | None) -> list[dict[str, Any]]:
                 })
     except Exception as e:
         logger.warning("db get_history_filtered: %s", e)
+    return out
+
+
+def insert_match_price(symbol: str, target: float, price: float) -> None:
+    try:
+        with _cursor() as cur:
+            cur.execute(
+                "INSERT INTO match_price (symbol, target, price, at) VALUES (%s, %s, %s, %s)",
+                (symbol, target, price, datetime.now(UTC7).replace(tzinfo=None)),
+            )
+    except Exception as e:
+        logger.warning("db insert_match_price: %s", e)
+
+
+def get_match_price_filtered(symbol: str | None) -> list[dict[str, Any]]:
+    out = []
+    try:
+        with _cursor() as cur:
+            if symbol:
+                cur.execute(
+                    "SELECT symbol, target, price, at FROM match_price WHERE UPPER(symbol) = UPPER(%s) ORDER BY at DESC LIMIT 500",
+                    (symbol.strip(),),
+                )
+            else:
+                cur.execute("SELECT symbol, target, price, at FROM match_price ORDER BY at DESC LIMIT 500")
+            for row in cur.fetchall():
+                out.append({
+                    "symbol": row[0],
+                    "target": float(row[1]) if row[1] is not None else 0,
+                    "price": float(row[2]) if row[2] is not None else 0,
+                    "at": row[3].strftime("%Y-%m-%d %H:%M:%S") if hasattr(row[3], "strftime") else str(row[3]),
+                })
+    except Exception as e:
+        logger.warning("db get_match_price_filtered: %s", e)
     return out

@@ -25,7 +25,13 @@ from .config import (
     TELEGRAM_CHAT_ID,
 )
 from .fetcher import fetch_prices, fetch_prices_dict
-from .store import append_history, get_history_filtered, load_observers, save_observers
+from .store import (
+    append_history,
+    get_history_filtered,
+    get_match_price_filtered,
+    load_observers,
+    save_observers,
+)
 from .telegram_send import send_telegram
 
 run_check = None
@@ -58,7 +64,14 @@ def index():
     return jsonify({
         "ok": True,
         "app": "vietnam-stock-telegram",
-        "endpoints": ["/api/symbols", "/api/observers", "/api/history", "/api/price", "/api/check"],
+        "endpoints": [
+            "/api/symbols",
+            "/api/observers",
+            "/api/history",
+            "/api/match-price",
+            "/api/price",
+            "/api/check",
+        ],
     })
 
 
@@ -104,6 +117,13 @@ def api_history():
     symbol = request.args.get("symbol", "").strip() or None
     history = get_history_filtered(symbol)
     return jsonify({"history": history})
+
+
+@app.route("/api/match-price")
+def api_match_price():
+    symbol = request.args.get("symbol", "").strip() or None
+    rows = get_match_price_filtered(symbol)
+    return jsonify({"match_price": rows})
 
 
 @app.route("/api/price")

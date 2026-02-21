@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 import {
   fetchCurrentPrice,
   fetchHistory,
+  fetchMatchPrice,
   fetchObservers,
   fetchSymbols,
   saveObservers,
   type HistoryItem,
+  type MatchPriceItem,
 } from "./api";
 import "./App.css";
 
@@ -15,7 +17,9 @@ function App() {
     {}
   );
   const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [matchPrice, setMatchPrice] = useState<MatchPriceItem[]>([]);
   const [filterSymbol, setFilterSymbol] = useState<string>("");
+  const [filterMatchSymbol, setFilterMatchSymbol] = useState<string>("");
   const [toast, setToast] = useState(false);
   const [loading, setLoading] = useState(true);
   const [newSymbolName, setNewSymbolName] = useState("");
@@ -44,6 +48,10 @@ function App() {
     fetchHistory(filterSymbol || undefined).then(setHistory);
   }, [filterSymbol]);
 
+  useEffect(() => {
+    fetchMatchPrice(filterMatchSymbol || undefined).then(setMatchPrice);
+  }, [filterMatchSymbol]);
+
   const handleSave = async () => {
     const trimmed: Record<string, string> = {};
     for (const [k, v] of Object.entries(observerValues)) {
@@ -62,6 +70,10 @@ function App() {
 
   const refreshHistory = () => {
     fetchHistory(filterSymbol || undefined).then(setHistory);
+  };
+
+  const refreshMatchPrice = () => {
+    fetchMatchPrice(filterMatchSymbol || undefined).then(setMatchPrice);
   };
 
   const handleRemoveSymbol = async (symbol: string) => {
@@ -141,11 +153,14 @@ function App() {
         {page === "main" && (
           <>
             <p className="sub">
-              Set a target price per symbol. When price is at or below target,
-              you get a Telegram alert. Check runs every 30 seconds.
+              Set a target price per symbol. When live price falls inside the
+              band (within 0.1% of target), you get a Telegram alert and a row
+              is added to Match price. Check runs every 30 seconds.
             </p>
             <section className="card">
-              <h2>Observer prices (alert when price ≤ value)</h2>
+              <h2>
+                Observer prices (alert when price is within 0.1% of target)
+              </h2>
               <p className="sub">Data from database only.</p>
               <div className="symbol-grid">
                 {symbols.map((sym) => (
@@ -175,10 +190,72 @@ function App() {
               </p>
             </section>
             <section className="card">
+              <h2>Match price</h2>
+              <p className="sub">
+                Rows added when live price falls inside the band (within 0.1% of
+                target). One row per (symbol, target) the first time price
+                enters the band; Telegram alert is sent at the same time.
+              </p>
+              <div className="filter-row">
+                <label htmlFor="filterMatchSymbol">Filter by symbol:</label>
+                <select
+                  id="filterMatchSymbol"
+                  value={filterMatchSymbol}
+                  onChange={(e) => setFilterMatchSymbol(e.target.value)}
+                >
+                  <option value="">All symbols</option>
+                  {symbols.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+                <button type="button" onClick={refreshMatchPrice}>
+                  Refresh
+                </button>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Symbol</th>
+                    <th>Target</th>
+                    <th>Price</th>
+                    <th>Time</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {matchPrice.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="empty">
+                        No match price rows yet.
+                      </td>
+                    </tr>
+                  ) : (
+                    matchPrice.map((m, i) => (
+                      <tr key={`${m.symbol}-${m.at}-${i}`}>
+                        <td>{m.symbol}</td>
+                        <td>
+                          {typeof m.target === "number"
+                            ? m.target.toLocaleString()
+                            : m.target}
+                        </td>
+                        <td>
+                          {typeof m.price === "number"
+                            ? m.price.toLocaleString()
+                            : m.price}
+                        </td>
+                        <td>{m.at}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </section>
+            <section className="card">
               <h2>Alert history</h2>
               <p className="sub">
-                New rows when you save a changed target price, or when price
-                hits target and an alert is sent (check every 30s).
+                New rows only when you save a changed target price (observer
+                save).
               </p>
               <div className="filter-row">
                 <label htmlFor="filterSymbol">Filter by symbol:</label>

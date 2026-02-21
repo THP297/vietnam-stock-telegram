@@ -12,7 +12,7 @@ from .config import (
 )
 from .fetcher import fetch_prices_dict
 from .store import (
-    append_history,
+    append_match_price,
     load_last_alerted,
     load_observers,
     save_last_alerted,
@@ -65,8 +65,8 @@ def run_check() -> None:
         if last_alerted.get(symbol) == target:
             continue
         msg = f"🔔 Price alert: {symbol} = {current:,.0f} (within 0.1% of target {target:,.0f})"
+        append_match_price(symbol, target, current)
         if send_telegram(TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, msg):
-            append_history(symbol, target, current)
             last_alerted[symbol] = target
             updated = True
             logger.info("Alert sent: %s", msg)

@@ -11,6 +11,14 @@ export type HistoryItem = {
 };
 export type HistoryResponse = { history: HistoryItem[] };
 
+export type MatchPriceItem = {
+  symbol: string;
+  target: number;
+  price: number;
+  at: string;
+};
+export type MatchPriceResponse = { match_price: MatchPriceItem[] };
+
 export async function fetchSymbols(): Promise<string[]> {
   const res = await fetch(`${API}/symbols`);
   const data: SymbolsResponse = await res.json();
@@ -40,6 +48,17 @@ export async function fetchHistory(symbol?: string): Promise<HistoryItem[]> {
   const res = await fetch(url);
   const data: HistoryResponse = await res.json();
   return data.history ?? [];
+}
+
+export async function fetchMatchPrice(
+  symbol?: string
+): Promise<MatchPriceItem[]> {
+  const url = symbol
+    ? `${API}/match-price?symbol=${encodeURIComponent(symbol)}`
+    : `${API}/match-price`;
+  const res = await fetch(url);
+  const data: MatchPriceResponse = await res.json();
+  return data.match_price ?? [];
 }
 
 export type PriceResponse = { symbol: string; price: number };
