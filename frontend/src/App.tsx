@@ -27,7 +27,9 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [newSymbolName, setNewSymbolName] = useState("");
   const [newSymbolPrice, setNewSymbolPrice] = useState("");
-  const [page, setPage] = useState<"main" | "add" | "price">("main");
+  const [page, setPage] = useState<"main" | "add" | "price" | "history">(
+    "main"
+  );
   const [priceSymbol, setPriceSymbol] = useState("");
   const [priceResult, setPriceResult] = useState<
     { symbol: string; price: number } | { error: string } | null
@@ -136,6 +138,7 @@ function App() {
     { id: "main" as const, label: "Main", icon: "📋" },
     { id: "add" as const, label: "Add symbol", icon: "➕" },
     { id: "price" as const, label: "Current price", icon: "📈" },
+    { id: "history" as const, label: "Alert history", icon: "📜" },
   ];
 
   return (
@@ -260,69 +263,71 @@ function App() {
                 </tbody>
               </table>
             </section>
-
-            <section className="card" id="alert-history">
-              <h2>Alert history</h2>
-              <p className="sub">
-                New rows only when you save a changed target price (observer
-                save).
-              </p>
-              <div className="filter-row">
-                <label htmlFor="filterSymbol">Filter by symbol:</label>
-                <select
-                  id="filterSymbol"
-                  value={filterSymbol}
-                  onChange={(e) => setFilterSymbol(e.target.value)}
-                >
-                  <option value="">All symbols</option>
-                  {symbols.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
-                <button type="button" onClick={refreshHistory}>
-                  Refresh
-                </button>
-              </div>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Symbol</th>
-                    <th>Target</th>
-                    <th>Price</th>
-                    <th>Time</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {history.length === 0 ? (
-                    <tr>
-                      <td colSpan={4} className="empty">
-                        No alerts yet.
-                      </td>
-                    </tr>
-                  ) : (
-                    history.map((h, i) => (
-                      <tr key={`${h.symbol}-${h.at}-${i}`}>
-                        <td>{h.symbol}</td>
-                        <td>
-                          {typeof h.target === "number"
-                            ? h.target.toLocaleString()
-                            : h.target}
-                        </td>
-                        <td>
-                          {typeof h.price === "number"
-                            ? h.price.toLocaleString()
-                            : h.price}
-                        </td>
-                        <td>{h.at}</td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </section>
           </>
+        )}
+
+        {page === "history" && (
+          <section className="card page-card" id="alert-history">
+            <h2>Alert history</h2>
+            <p className="sub">
+              New rows only when you save a changed target price (observer
+              save).
+            </p>
+            <div className="filter-row">
+              <label htmlFor="filterSymbol">Filter by symbol:</label>
+              <select
+                id="filterSymbol"
+                value={filterSymbol}
+                onChange={(e) => setFilterSymbol(e.target.value)}
+              >
+                <option value="">All symbols</option>
+                {symbols.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+              <button type="button" onClick={refreshHistory}>
+                Refresh
+              </button>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Symbol</th>
+                  <th>Target</th>
+                  <th>Price</th>
+                  <th>Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                {history.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="empty">
+                      No alerts yet.
+                    </td>
+                  </tr>
+                ) : (
+                  history.map((h, i) => (
+                    <tr key={`${h.symbol}-${h.at}-${i}`}>
+                      <td>{h.symbol}</td>
+                      <td>
+                        {typeof h.target === "number"
+                          ? h.target.toLocaleString()
+                          : h.target}
+                      </td>
+                      <td>
+                        {typeof h.price === "number"
+                          ? h.price.toLocaleString()
+                          : h.price}
+                      </td>
+                      <td>{h.at}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </section>
         )}
 
         {page === "add" && (
